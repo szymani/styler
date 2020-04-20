@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from random import randrange
 from threading import Thread
+from werkzeug.utils import secure_filename
 import time
 import os
 
@@ -12,9 +13,13 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'db.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = basedir + '/static/images/'
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Image Class/Model
 class Image(db.Model):
@@ -67,13 +72,19 @@ class Compute(Thread):
 
 @app.route('/image/custom', methods=['POST'])
 def add_custom():
-  if request.json['name'] is not None:
-    name = request.json['name']
+  if request.form['name'] is not None:
+    name = request.form['name']
 
-  if request.json['name'] is not None:
-    content_image = request.json['content_image']
+  if request.form['content_image'] is not None:
+    content_image = request.form['content_image']
   else:
     content_image = None
+
+  file = request.files['file']
+  if file and allowed_file(file.filename):
+    filename = secure_filename(file.filename)
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    return send_from_directory(directory=app.config['UPLOAD_FOLDER'], filename=file.filename), 200
 
   new_image = Image(content_image, 0, name)
   compute_thread = Compute(new_image)
