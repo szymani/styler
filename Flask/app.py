@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from random import randrange
@@ -6,6 +6,7 @@ from threading import Thread
 from werkzeug.utils import secure_filename
 import time
 import os
+from io import BytesIO
 
 # Init app
 app = Flask(__name__)
@@ -25,19 +26,19 @@ def allowed_file(filename):
 class Image(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String(100), unique=False)
-  content_image = db.Column(db.String(200))
-  style_image = db.Column(db.String(200))
+  content_image = db.Column(db.LargeBinary)
+  style_image = db.Column(db.LargeBinary)
+  result_image = db.Column(db.LargeBinary)
   password = db.Column(db.Integer)
   style_type = db.Column(db.Integer)
   status = db.Column(db.Integer)
-  result_image = db.Column(db.String(200))
 
   def __init__(self, content_image, style_type, name='Default name', password='123123', style_image=None):
     self.name = name
     self.content_image = content_image
     self.style_image = style_image
-    # self.password = randrange(10000000)
     self.result_image = None
+    # self.password = randrange(10000000)
     self.password = password
     self.style_type = style_type
     self.status = 0
@@ -48,10 +49,13 @@ class ImageSchema(ma.Schema):
   class Meta:
     fields = ('id', 'name', 'content_image', 'style_image', 'result_image', 'password', 'style_type', 'status')
 
+class ImagePassSchema(ma.Schema):
+  class Meta:
+    fields = ('id', 'password', 'status')
 
 # Init schema
 image_schema = ImageSchema()
-
+pass_schema = ImagePassSchema()
 
 class Compute(Thread):
   def __init__(self, data):
@@ -64,36 +68,32 @@ class Compute(Thread):
     # TODO Apply style transfer
 
     image = Image.query.get(self.data.id)
-    image.result_image = "NST Done"
     image.status = 1
+    image.result_image = image.content_image
     app.logger.info("{Id: " +  str(self.data.id) + " --> Status " +  str(image.status) + "}")
     db.session.commit()
 
 
 @app.route('/image/custom', methods=['POST'])
 def add_custom():
-  if request.form['name'] is not None:
-    name = request.form['name']
+  if request.form['name'] is not None: name = request.form['name']
 
-  if request.form['content_image'] is not None:
-    content_image = request.form['content_image']
-  else:
-    content_image = None
+  if request.files['content_image'] is None: return "Missing content image", 200
 
-  file = request.files['file']
-  if file and allowed_file(file.filename):
-    filename = secure_filename(file.filename)
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    return send_from_directory(directory=app.config['UPLOAD_FOLDER'], filename=file.filename), 200
+  content_image = request.files['content_image']
+  if content_image and allowed_file(content_image.filename):
+    filename = secure_filename(content_image.filename)
 
-  new_image = Image(content_image, 0, name)
-  compute_thread = Compute(new_image)
-  compute_thread.start()
+    new_image = Image(content_image=content_image.read(), style_type=0, name=name)
 
-  db.session.add(new_image)
-  db.session.commit()
+    compute_thread = Compute(new_image)
+    compute_thread.start()
 
-  return image_schema.jsonify(new_image)
+    db.session.add(new_image)
+    db.session.commit()
+
+    return pass_schema.jsonify(new_image)
+  return "Not allowed name", 200
 
 
 @app.route('/image/<id>', methods=['GET'])
@@ -107,7 +107,7 @@ def get_image(id):
         return "Image not ready", 200
       elif result_image.status == -1:
         return "There have been an error", 200
-      return image_schema.jsonify(result_image)
+      return send_file(BytesIO(result_image.result_image), attachment_filename="test.png"), 200
     else:
       return "Wrong password", 200
 
