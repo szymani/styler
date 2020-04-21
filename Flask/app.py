@@ -4,6 +4,7 @@ from flask_marshmallow import Marshmallow
 from random import randrange
 from threading import Thread
 from werkzeug.utils import secure_filename
+import copy
 import time
 import os
 from io import BytesIO
@@ -59,7 +60,7 @@ class ImagePassSchema(ma.Schema):
 image_schema = ImageSchema()
 pass_schema = ImagePassSchema()
 
-class Compute(Thread):
+class ProcessImage(Thread):
   def __init__(self, data):
     Thread.__init__(self)
     self.data = data
@@ -72,7 +73,7 @@ class Compute(Thread):
     image = Image.query.get(self.data.id)
     image.status = 1
     image.result_image = image.style_image
-    app.logger.info("{Id: " +  str(self.data.id) + " --> Status " +  str(image.status) + "}")
+    app.logger.info("{Id: " + str(self.data.id) + " --> Status " + str(image.status) + "}")
     db.session.commit()
 
 
@@ -114,11 +115,11 @@ def add_pre_style(style):  #* Check imput
   return "Not allowed file", 200
 
 
-@app.route('/image/<id>', methods=['GET'])
+@app.route('/image/<int:id>', methods=['GET'])
 def get_image(id):
   result_image = Image.query.get(id)
   if result_image is None:
-    return "No image with this id", 200
+    return "No image with this id", 200-
   else:
     if request.args.get('password') == str(result_image.password):
       if result_image.status == 0:
@@ -129,7 +130,6 @@ def get_image(id):
       return send_file(BytesIO(result_image.result_image), attachment_filename="test.png"), 200
     else:
       return "Wrong password", 200
-
 
 @app.route('/styles/', methods=['GET'])
 def get_styles():
@@ -144,14 +144,17 @@ def get_ids():
   return ' '.join(map(str, ids)), 200
 
 
-@app.route('/image/<id>', methods=['DELETE'])
+@app.route('/image/<int:id>', methods=['DELETE'])
 def delete_image(id):
   image = Image.query.get(id)
   if image is not None:
     if request.args.get('password') == str(image.password):
-      db.session.delete(image)
-      db.session.commit()
-      return image_schema.jsonify(image)
+      if image.status is not 0:
+        db.session.delete(image)
+        db.session.commit()
+        return send_file(BytesIO(image.result_image), attachment_filename="test.png"), 200
+      else:
+        return "Image is still being processed", 200
     else:
       return "Wrong password", 200
   else:

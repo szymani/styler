@@ -1,0 +1,8 @@
+tzdata
+scikit-umfpack
+cupy-cuda102
+pynvrtc
+flask
+flask-sqlalchemy
+flask-marshmallow
+marshmallow-sqlalchemy
