@@ -13,7 +13,7 @@ def create_app(new=False):
     ma.init_app(app)
 
     with app.app_context():
-        from application.controllers import routes
+        from application.controllers import routes, user_controller, style_controller
         db.create_all()  # Create database tables for our data models
 
         return app

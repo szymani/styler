@@ -1,7 +1,7 @@
 from application import db, ma
 from datetime import datetime as dt
 from . import user
-from . import singlePost
+from . import single_post
 
 
 class Style(db.Model):

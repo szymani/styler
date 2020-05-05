@@ -4,7 +4,7 @@ from application.models.user import User
 from application.models.style import Style
 
 
-class Single_post(db.Model):
+class SinglePost(db.Model):
     __tablename__ = 'post'
     id = db.Column(db.Integer, primary_key=True)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))

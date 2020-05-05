@@ -1,5 +1,5 @@
 from threading import Thread
-from application.models.singlePost import Single_post
+from application.models.single_post import SinglePost
 from Fast_lite.fast_algorithm import change_style
 from flask import current_app as app
 from application import db
