@@ -1,13 +1,6 @@
 from flask import request, send_file
 from flask import current_app as app
-from io import BytesIO
-
 from application import db, ma
-from application.models.single_post import SinglePost
-from application.services.process_image import ProcessImage
-from ..models import user, style
-
-style_paths = {'to_day': 'today.jpg', 'to_night': 'night.jpg'}
 
 # Image Schema
 class ImageSchema(ma.Schema):
