@@ -10,7 +10,7 @@ user = Blueprint('user', __name__)
 
 
 @login_required
-@user.route('/user/<int:id>/', methods=['GET'])
+@user.route('/user/<int:id>', methods=['GET'])
 def get_user(id):
     if id is not None:
         if current_user.is_authenticated:
@@ -46,6 +46,7 @@ def get_user_by_login():
 @login_required
 @user.route('/user/self', methods=['GET'])
 def get_self():
+    print(request.headers.get('Authorization', '').split())
     if current_user.is_authenticated:
         return current_user.as_dict(), 200
     else:  # restricted access to somebody else
@@ -143,55 +144,64 @@ def delete_user(id):
 
 
 @login_required
-@user.route('/user/<int:id>/follow/', methods=['PUT'])
+@user.route('/user/<int:id>/follow', methods=['PUT'])
 def follow_user(id):
     if id is not None:
         if user_model.User.query.get(id) is not None:
             if current_user.is_authenticated:
-                this_user = current_user
-                this_user.followed.append(user_model.User.query.get(id))
-                db.session.commit()
-                responseObject = {
-                    'followed': [({
-                        'id': follow.id,
-                    }) for follow in this_user.followed],
-                }
-                return make_response(
-                    jsonify(responseObject)), 200
+                if (len(current_user.followed.filter(user_model.User.id == id).all())) is 0:
+                    this_user = current_user
+                    this_user.followed.append(user_model.User.query.get(id))
+                    db.session.commit()
+                    responseObject = {
+                        'followed': [({
+                            'id': follow.id,
+                        }) for follow in this_user.followed],
+                    }
+                    return make_response(
+                        jsonify(responseObject)), 200
+                else:
+                    abort(404, "Already followed")
             else:  # restricted access to somebody else
                 abort(401)
         abort(404, "No user with this id")
     abort(400)
 
 
-@login_required
-@user.route('/user/<int:id>/unfollow/', methods=['PUT'])
+@ login_required
+@ user.route('/user/<int:id>/unfollow', methods=['PUT'])
 def unfollow_user(id):
     if id is not None:
         if user_model.User.query.get(id) is not None:
             if current_user.is_authenticated:
-                this_user = current_user
-                try:
-                    this_user.followed.remove(user_model.User.query.get(id))
-                except:
-                    pass
-                db.session.commit()
-                responseObject = {
-                    'followed': [({
-                        'id': follow.id,
-                    }) for follow in this_user.followed],
-                }
-                return make_response(jsonify(responseObject)), 200
+                if (len(current_user.followed.filter(user_model.User.id == id).all())) is not 0:
+                    this_user = current_user
+                    try:
+                        this_user.followed.remove(
+                            user_model.User.query.get(id))
+                    except:
+                        pass
+                    db.session.commit()
+                    responseObject = {
+                        'followed': [({
+                            'id': follow.id,
+                        }) for follow in this_user.followed],
+                    }
+                    return make_response(jsonify(responseObject)), 200
+                else:
+                    abort(404, "Not followed")
             else:  # restricted access to somebody else
                 abort(401)
         abort(404, "No user with this id")
     abort(400)
 
 
-@login_required
-@user.route('/user/followed/', methods=['GET'])
+@ login_required
+@ user.route('/user/followed/', methods=['GET'])
 def get_followed_self():
+    print(current_user)
     limit, page_num = helper_func.set_limit_and_page(request)
+
     if current_user.is_authenticated:
         result = []
         for i in range((page_num - 1) * limit, page_num * limit):
@@ -204,8 +214,8 @@ def get_followed_self():
         abort(401)
 
 
-@login_required
-@user.route('/user/followers/', methods=['GET'])
+@ login_required
+@ user.route('/user/followers/', methods=['GET'])
 def get_followers_self():
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
@@ -220,8 +230,8 @@ def get_followers_self():
         abort(401)
 
 
-@login_required
-@user.route('/user/<int:id>/followed/', methods=['GET'])
+@ login_required
+@ user.route('/user/<int:id>/followed/', methods=['GET'])
 def get_followed(id):
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
@@ -240,8 +250,8 @@ def get_followed(id):
         abort(401)
 
 
-@login_required
-@user.route('/user/<int:id>/followers/', methods=['GET'])
+@ login_required
+@ user.route('/user/<int:id>/followers/', methods=['GET'])
 def get_followers(id):
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:

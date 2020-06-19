@@ -1,4 +1,4 @@
-from flask import request, send_file, Blueprint, jsonify, make_response
+from flask import request, send_file, Blueprint, jsonify, make_response, abort
 from flask import current_app as app
 from flask_login import login_required, logout_user, current_user
 from io import BytesIO
@@ -6,100 +6,61 @@ import json
 
 from application import db, ma
 from ..models import user_model, comment_model, single_post_model
-from ..services import helper_func
+from ..services import helper_func, style_service
 from ..services.process_image import ProcessImage
-
 
 single_post = Blueprint('single_post', __name__)
 
 
-@app.route('/image/custom', methods=['POST'])
-def add_custom():
-    if request.files['content_image'] is None:
-        return "Missing content image", 200
-    if request.files['style_image'] is None:
-        return "Missing style image", 200
-
-    content_image = request.files['content_image']
-    style_image = request.files['style_image']
-    # and allowed_file(content_image.filename) and allowed_file(style_image.filename):
-    if content_image and style_image:
-        new_image = Single_post(content_image=content_image.read(
-        ), style_image=style_image.read(), style_type='Custom')
-        db.session.add(new_image)
-        db.session.commit()
-        compute_thread = ProcessImage(new_image, app._get_current_object())
-        # compute_thread.start()
-
-        return pass_schema.jsonify(new_image)
-    return "Not allowed file", 200
-
-
-@app.route('/image/<int:id>', methods=['POST'])
-def add_pre_style(style_id):  # * Check imput
-    if request.files['content_image'] is None:
-        return "Missing content image", 200
-    content_image = request.files['content_image']
-    style_image = open(app.config['STYLE_FOLDER'] + style_paths[style], 'rb')
-
-    if content_image and style_image and allowed_file(
-            content_image.filename):  # and allowed_file(style_image.filename):
-        new_image = Single_post(content_image=content_image.read(
-        ), style_image=style_image.read(), style_type=style)
-        # * Start Image Processing in the background
-        compute_thread = ProcessImage(new_image)
-        compute_thread.start()
-
-        db.session.add(new_image)
-        db.session.commit()
-        return pass_schema.jsonify(new_image)
-    return "Not allowed file", 200
-
-
 @login_required
-@single_post.route('/post/', methods=['POST'])
-def add_post_presyle():
+@single_post.route('/post', methods=['POST'])
+def add_post_prestyle():
     data = request.get_json()
     if data is not None:
         if current_user.is_authenticated:
-            try:
-                new_post = single_post_model.SinglePost(
-                    content_image=data["content_image"],
-                    author_id=current_user.id,
-                    description=data["description"],
-                    style_id=data["style_id"])
-
-                compute_thread = ProcessImage(new_post)
-                compute_thread.start()
-                db.session.add(new_post)
-                db.session.commit()
-                return new_post.as_dict(), 200
-            except Exception as e:
-                print(str(e))
+            if style_service.get_style_by_id(data["style_id"]):
+                try:
+                    new_post = single_post_model.SinglePost(
+                        content_image=data["content_image"],
+                        author_id=current_user.id,
+                        description=data["description"],
+                        style_id=data["style_id"],
+                        isprivate=data["isprivate"])
+                    db.session.add(new_post)
+                    db.session.commit()
+                    compute_thread = ProcessImage(
+                        new_post.id, app._get_current_object())
+                    compute_thread.start()
+                    return new_post.as_dict(), 200
+                except Exception as e:
+                    print(str(e))
+            else:
+                abort(404, "Style not found")
         else:
             abort(401)
     abort(400)
 
 
 @login_required
-@single_post.route('/post/', methods=['POST'])
+@single_post.route('/post/custom', methods=['POST'])
 def add_post_custom():
     data = request.get_json()
     if data is not None:
         if current_user.is_authenticated:
             # TODO Create new style
-            id = 0
-
+            new_style = style_service.add_style(data)
             try:
                 new_post = single_post_model.SinglePost(
                     content_image=data["content_image"],
                     author_id=current_user.id,
                     description=data["description"],
-                    style_id=id)
-                compute_thread = ProcessImage(new_post)
-                compute_thread.start()
+                    style_id=new_style.id,
+                    isprivate=data["isprivate"])
                 db.session.add(new_post)
                 db.session.commit()
+                compute_thread = ProcessImage(
+                    new_post.id, app._get_current_object())
+                compute_thread.start()
                 return new_post.as_dict(), 200
             except Exception as e:
                 print(str(e))
@@ -158,7 +119,7 @@ def get_posts(id):
                     result.append(wanted_post.as_dict())
                 return jsonify(result), 200
             else:
-                abort(404)
+                return str([]), 200
     abort(400)
 
 

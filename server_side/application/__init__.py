@@ -11,7 +11,8 @@ ma = Marshmallow()
 
 def create_app(testing=False):
     app = Flask(__name__, instance_relative_config=False)
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "*"}})
+    # CORS(app)
     if testing is False:
         app.config.from_object('config.Config')
     else:

@@ -9,7 +9,7 @@ class Config:
     # General Flask Config
     if environ.get('SECRET_KEY') is not None:
         SECRET_KEY = environ.get('SECRET_KEY')
-    else:       #if there is problem loading env
+    else:  # if there is problem loading env
         SECRET_KEY = "Loading_.env_needs_fixing"
     # FLASK_ENV = environ.get('FLASK_ENV')
     FLASK_APP = 'app.py'
@@ -21,6 +21,11 @@ class Config:
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # CORS
+    CORS_SUPPORTS_CREDENTIAL = True
+    CORS_ALLOW_HEADERS = 'Content-Type,Authorization'
+    CORS_ALLOW_METHOD = 'GET,PUT,POST,DELETE,OPTIONS'
+
 
 class TestConfig:
     """Set Flask configuration variables from .env file."""
@@ -28,15 +33,16 @@ class TestConfig:
     # General Flask Config
     if environ.get('SECRET_KEY') is not None:
         SECRET_KEY = environ.get('SECRET_KEY')
-    else:       #if there is problem loading env
+    else:  # if there is problem loading env
         SECRET_KEY = "Loading_.env_needs_fixing"
     # FLASK_ENV = environ.get('FLASK_ENV')
     FLASK_APP = 'app.py'
     FLASK_DEBUG = 1
     TESTING = True
-    
+
     # Database
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + path.join(basedir, 'test_db.sqlite')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + \
+        path.join(basedir, 'test_db.sqlite')
     SQLALCHEMY_DATABASE_TEST_PATH = path.join(basedir, 'test_db.sqlite')
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False

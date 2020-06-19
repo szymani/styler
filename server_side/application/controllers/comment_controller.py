@@ -1,29 +1,36 @@
-from flask import request, send_file, Blueprint, make_response, jsonify
+from flask import request, send_file, Blueprint, make_response, jsonify, abort
 from flask import current_app as app
 from flask_login import login_required, logout_user, current_user
 from io import BytesIO
 
 from application import db, ma
 from ..models import user_model, comment_model
-from ..services import helper_func
+from ..services import helper_func, comment_service
 
 comment = Blueprint('comment', __name__)
 
 
 @login_required
-@comment.route('/post/<int:id>/comment/', methods=['POST'])
+@comment.route('/post/<int:id>/comment', methods=['POST'])
 def add_comment(id):
     data = request.get_json()
     if data is not None and id is not None:
         if current_user.is_authenticated:
-            new_comment = comment_model.Comment(
-                author_id=current_user.id,
-                post_id=id,
-                description=data["description"])
-            db.session.add(new_comment)
-            db.session.commit()
+            new_comment = comment_service.add_comment(id, data)
             return new_comment.as_dict(), 200
         abort(401)
+    abort(400)
+
+
+@login_required
+@comment.route('/comments/<int:id>', methods=['GET'])
+def get_comment(id):
+    if id is not None:
+        wanted_comment = comment_service.get_comment(id)
+        if wanted_comment is not None:
+            if comment_service.check_auth(wanted_comment):
+                return wanted_comment.as_dict(), 200
+        abort(404, "No comment with this id")
     abort(400)
 
 
@@ -34,9 +41,8 @@ def get_comments(id):
     if current_user.is_authenticated:
         if id is not None:
             try:
-                wanted_comments = comment_model.Comment.query.filter(
-                    comment_model.Comment.post_id == id).paginate(
-                        page=page_num, per_page=limit)
+                wanted_comments = comment_service.get_comments(
+                    id, page_num, limit)
             except:
                 return str([]), 200
             if wanted_comments is not None:
@@ -50,38 +56,31 @@ def get_comments(id):
 
 
 @login_required
-@comment.route('/comment/<int:id>', methods=['PUT'])
+@comment.route('/comments/<int:id>', methods=['PUT'])
 def update_comment(id):
     data = request.get_json()
     if data is not None and id is not None:
-        wanted_comment = comment_model.Comment.query.filter(
-            comment_model.Comment.id == id)
+        wanted_comment = comment_service.get_as_list(id)
         if wanted_comment is not None:
             try:
-                if current_user.is_authenticated and (
-                        wanted_comment.first().comment_author_id == current_user.id
-                        or current_user.user_type == 1):
-                    wanted_comment.update(data)
-                    db.session.commit()
+                if comment_service.check_auth(wanted_comment):
+                    comment_service.update_comment(wanted_comment, data)
                     return wanted_comment.first().as_dict(), 200
             except:
-                abort(400)
+                abort(400, "Exception")
             abort(401)
         abort(404, "No comment with this id")
     abort(400)
 
 
 @login_required
-@comment.route('/comment/<int:id>', methods=['DELETE'])
+@comment.route('/comments/<int:id>', methods=['DELETE'])
 def delete_comment(id):
     if id is not None:
-        wanted_comment = comment_model.Comment.query.get(id)
+        wanted_comment = comment_service.get_comment(id)
         if wanted_comment is not None:
-            if current_user.is_authenticated and (
-                    wanted_comment.comment_author.id == current_user.id
-                    or current_user.user_type == 1):
-                db.session.delete(wanted_comment)
-                db.session.commit()
+            if comment_service.check_auth(wanted_comment):
+                comment_service.delete_comment(wanted_comment)
                 return wanted_comment.as_dict(), 200
             abort(401)
         abort(404, "No comment with this id")

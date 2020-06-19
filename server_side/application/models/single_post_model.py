@@ -26,7 +26,7 @@ class SinglePost(db.Model):
     result_image = db.Column(db.LargeBinary)
     creation_date = db.Column(db.DateTime)
     localization = db.Column(db.String(100), nullable=True)
-    ifprivate = db.Column(db.Boolean)
+    isprivate = db.Column(db.Boolean)
     style_id = db.Column(db.Integer, db.ForeignKey('style.id'))
     status = db.Column(db.Integer)
 
@@ -34,6 +34,8 @@ class SinglePost(db.Model):
                  content_image,
                  author_id,
                  style_id,
+                 isprivate=False,
+                 localization="Poland",
                  description='Default description'):
         # self.author = user_model.User.query.get(author_id)
         self.author_id = author_id
@@ -49,7 +51,7 @@ class SinglePost(db.Model):
         # self.style = Style.query.get(style_id)
         self.result_image = None
         self.localization = localization
-        self.ifprivate = ifprivate
+        self.isprivate = isprivate
         self.status = 0
 
     def as_dict(self):

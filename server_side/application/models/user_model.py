@@ -38,14 +38,16 @@ class User(UserMixin, db.Model):
         secondary=FollowerRelationship,
         primaryjoin=FollowerRelationship.c.FollowedID == id,
         secondaryjoin=FollowerRelationship.c.FollowerID == id,
-        backref="followed")
+        lazy='dynamic',
+        backref=db.backref('followed', lazy='dynamic'))
     messages = db.relationship("Message", backref="author")
     total_upvotes = db.Column(db.Integer, nullable=True)
-    fav_styles = db.relationship("User",
+    fav_styles = db.relationship("Style",
                                  secondary=user_style_table,
                                  lazy='dynamic',
                                  backref=db.backref('fav_for', lazy='dynamic'))
-    author_of_styles = db.relationship("Style", backref="style_author")
+    author_of_styles = db.relationship(
+        "Style", lazy='dynamic', backref="style_author")
 
     def __init__(self,
                  login,
