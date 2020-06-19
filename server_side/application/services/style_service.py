@@ -2,13 +2,13 @@ from flask import request
 from sqlalchemy import desc
 
 from application import db, ma
-from ..models import user_model, style_model
+from ..models import Style
 from flask_login import current_user
 from ..services import helper_func
 
 
 def add_style(data):
-    new_style = style_model.Style(
+    new_style = Style(
         author_id=current_user.id, isprivate=data["isprivate"], style_image=data["style_image"], description=data["description"])
     db.session.add(new_style)
     db.session.commit()
@@ -30,28 +30,29 @@ def check_auth_view(wanted_style):
 
 
 def get_style_by_id(id):
-    return style_model.Style.query.get(id)
+    return Style.query.get(id)
 
 
 def get_as_list(id):
-    return style_model.Style.query.filter(style_model.Style.id == id)
+    return Style.query.filter(Style.id == id)
 
 
 def add_to_fav(style):
-    current_user.fav_styles.append(style)
-    db.session.commit()
+    if len(current_user.fav_styles.filter(Style.id == style.id).all()) is 0:
+        current_user.fav_styles.append(style)
+        db.session.commit()
     return style
 
 
 def get_all_styles(limit, page):
-    return style_model.Style.query.filter(style_model.Style.isprivate == False).order_by(
-        desc(style_model.Style.creation_date)).paginate(
+    return Style.query.filter(Style.isprivate == False).order_by(
+        desc(Style.creation_date)).paginate(
         page=page, per_page=limit).items
 
 
 def get_your_styles(limit, page):
     return current_user.author_of_styles.order_by(
-        desc(style_model.Style.creation_date)).paginate(
+        desc(Style.creation_date)).paginate(
         page=page, per_page=limit).items
 
 

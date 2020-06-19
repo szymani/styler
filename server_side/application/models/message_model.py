@@ -1,6 +1,6 @@
 from application import db, ma
 from datetime import datetime as dt
-from ..models import user_model
+
 
 class Message(db.Model):
     __tablename__ = 'message'
@@ -8,7 +8,7 @@ class Message(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     chat_id = db.Column(db.Integer, db.ForeignKey('chat.id'))
     message_text = db.Column(db.String(250), nullable=True)
-    creation_date = db.Column(db.Integer, nullable=True)
+    creation_date = db.Column(db.DateTime)
     content_image = db.Column(db.LargeBinary)
 
     def __init__(self, author_id, message_text, content_image):

@@ -3,10 +3,17 @@ from flask import current_app as app
 from flask_login import login_required, logout_user, current_user
 
 from application import db, ma
-from ..models import user_model, chat_model, message_model
+from ..models import User, Chat, Message
 from ..services import helper_func
+from ..schemas import schemas
 
 message = Blueprint('message', __name__)
+message_schema = schemas.MessageSchema()
+messages_schema = schemas.MessageSchema(many=True)
+
+chat_schema = schemas.ChatSchema()
+chats_schema = schemas.ChatSchema(many=True)
+# TODO Make service for messages
 
 
 @login_required
@@ -14,25 +21,8 @@ message = Blueprint('message', __name__)
 def get_chats_list():
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        try:
-            chats = current_user.chats
-        except:
-            return str([]), 200
-        if len(chats.all()) is not 0:
-            result = []
-            for chat in chats.all():
-                part = []
-                for participant in chat.participants:
-                    part.append(participant.id)
-                    print(participant.id)
-                result.append({
-                    'chat_id': chat.id,
-                    'chat_name': chat.name,
-                    'participants': part
-                })
-            return jsonify(result), 200
-        else:
-            abort(404)
+        chats = current_user.chats
+        return jsonify(chats_schema.dump(chats)), 200
     abort(401)
 
 
@@ -41,34 +31,11 @@ def get_chats_list():
 def get_chat(id):
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        chat = chat_model.Chat.query.get(id)
+        chat = Chat.query.get(id)
         if (id is not None) and (chat is not None):
             for user in chat.participants:
                 if user.id is current_user.id:
-                    try:
-                        messages = chat.messages
-                    except:
-                        return str([]), 200
-                    if messages is not 0:
-                        part = []
-                        for participant in chat.participants:
-                            part.append({
-                                'author': participant.login,
-                                'author_id': participant.id,
-                                'author_photo': str(participant.profile_photo),
-                            })
-                        result = []
-                        for message in messages:
-                            result.append(message.as_dict())
-                        response_object = ({
-                            'chat_id': chat.id,
-                            'chat_name': chat.name,
-                            'participants': part,
-                            'messages': result
-                        })
-                        return jsonify(response_object), 200
-                    else:
-                        return str([]), 200
+                    return jsonify(chat_schema.dump(chat)), 200
             abort(401)
         abort(400)
     abort(401)
@@ -77,20 +44,19 @@ def get_chat(id):
 @login_required
 @message.route('/chats/<int:id>/send', methods=['POST'])
 def send_pm(id):
-    print(current_user)
     if current_user.is_authenticated:
         data = request.get_json()
         if id is not None and data is not None:
-            conv = chat_model.Chat.query.get(id)
+            conv = Chat.query.get(id)
             if conv is not None:
                 for user in conv.participants:
                     if user.id is current_user.id:
                         if conv is not None:
-                            new_message = message_model.Message(
+                            new_message = Message(
                                 author_id=current_user.id, message_text=data["message_text"], content_image=data["content_image"])
                             conv.messages.append(new_message)
                             db.session.commit()
-                            return new_message.as_dict(), 200
+                            return jsonify(message_schema.dump(new_message)), 200
                 abort(401)
             abort(404, "Wrong id")
         abort(400)
@@ -104,18 +70,12 @@ def new_chat():
         data = request.get_json()
         if data is not None:
             print(data)
-            conv = chat_model.Chat(
-                name=data["chat_name"], participants=data["participants"])
-            if (conv.participants is None) or (conv.participants.count() < len(data["participants"])):
-                return "Some users could not be added to chat", 400
+            try:
+                conv = Chat(name=data["chat_name"],
+                            participants=data["participants"])
+            except Exception as e:
+                abort(404, "Some users could not be added to chat")
             db.session.commit()
-            participants_id = []
-            for participant in data["participants"]:
-                participants_id.append(participant)
-            return jsonify({
-                'chat_id': conv.id,
-                'chat_name': conv.name,
-                'participants': participants_id
-            }), 200
+            return jsonify(chat_schema.dump(conv)), 200
         abort(400)
     abort(401)

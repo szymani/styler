@@ -4,10 +4,12 @@ from flask_login import login_required, logout_user, current_user
 from io import BytesIO
 
 from application import db, ma
-from ..models import user_model, comment_model
+from ..schemas import schemas
 from ..services import helper_func, comment_service
 
 comment = Blueprint('comment', __name__)
+comment_schema = schemas.CommentSchema()
+comments_schema = schemas.CommentSchema(many=True)
 
 
 @login_required
@@ -17,7 +19,7 @@ def add_comment(id):
     if data is not None and id is not None:
         if current_user.is_authenticated:
             new_comment = comment_service.add_comment(id, data)
-            return new_comment.as_dict(), 200
+            return jsonify(comment_schema.dump(new_comment)), 200
         abort(401)
     abort(400)
 
@@ -29,7 +31,7 @@ def get_comment(id):
         wanted_comment = comment_service.get_comment(id)
         if wanted_comment is not None:
             if comment_service.check_auth(wanted_comment):
-                return wanted_comment.as_dict(), 200
+                return jsonify(comment_schema.dump(wanted_comment)), 200
         abort(404, "No comment with this id")
     abort(400)
 
@@ -43,15 +45,9 @@ def get_comments(id):
             try:
                 wanted_comments = comment_service.get_comments(
                     id, page_num, limit)
+                return jsonify(comments_schema.dump(wanted_comments.items)), 200
             except:
-                return str([]), 200
-            if wanted_comments is not None:
-                result = []
-                for single_comment in wanted_comments.items:
-                    result.append(single_comment.as_dict())
-                return jsonify(result), 200
-            else:
-                abort(404)
+                return jsonify([]), 200
     abort(400)
 
 
@@ -65,7 +61,7 @@ def update_comment(id):
             try:
                 if comment_service.check_auth(wanted_comment):
                     comment_service.update_comment(wanted_comment, data)
-                    return wanted_comment.first().as_dict(), 200
+                    return jsonify(comment_schema.dump(comment_service.update_comment(wanted_comment, data).first())), 200
             except:
                 abort(400, "Exception")
             abort(401)
@@ -73,15 +69,14 @@ def update_comment(id):
     abort(400)
 
 
-@login_required
-@comment.route('/comments/<int:id>', methods=['DELETE'])
+@ login_required
+@ comment.route('/comments/<int:id>', methods=['DELETE'])
 def delete_comment(id):
     if id is not None:
         wanted_comment = comment_service.get_comment(id)
         if wanted_comment is not None:
             if comment_service.check_auth(wanted_comment):
-                comment_service.delete_comment(wanted_comment)
-                return wanted_comment.as_dict(), 200
+                return jsonify(comment_schema.dump(comment_service.delete_comment(wanted_comment))), 200
             abort(401)
         abort(404, "No comment with this id")
     abort(400)

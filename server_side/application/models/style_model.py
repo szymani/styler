@@ -1,7 +1,5 @@
 from application import db, ma
 from datetime import datetime as dt
-from . import user_model
-from . import single_post_model
 
 
 class Style(db.Model):
@@ -16,7 +14,6 @@ class Style(db.Model):
     isprivate = db.Column(db.Boolean)
 
     def __init__(self, author_id, style_image, description='Default description', localization="", isprivate=True):
-        #    self.style_author = user.User.query.get(author_id)
         self.style_author_id = author_id
         self.description = description
         self.style_image = style_image

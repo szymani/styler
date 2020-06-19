@@ -5,8 +5,15 @@ from io import BytesIO
 from application import db, ma
 from ..models import user_model, comment_model
 from ..services import helper_func
+from ..schemas import schemas
 
 user = Blueprint('user', __name__)
+user_schema_basic = schemas.UserSchema(
+    exclude=['password', 'email', 'messages', 'chats'])
+users_schema_basic = schemas.UserSchema()
+
+# TODO Fix serialization of list of users
+# TODO Make service for user
 
 
 @login_required
@@ -16,7 +23,7 @@ def get_user(id):
         if current_user.is_authenticated:
             wanted_user = user_model.User.query.get(id)
             if wanted_user is not None:
-                return wanted_user.as_dict(), 200
+                return jsonify(user_schema_basic.dump(wanted_user)), 200
             abort(404, "User not found")
         else:  # restricted access to somebody else
             abort(401)
@@ -29,15 +36,16 @@ def get_user_by_login():
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
         wanted_users = user_model.User.query.filter(
-            user_model.User.login.contains(str(request.args.get('login'))))
+            user_model.User.login.contains(str(request.args.get('login')))).all()
         if wanted_users is not None:
             result = []
             for i in range((page_num - 1) * limit, page_num * limit):
                 try:
-                    result.append(wanted_users.all()[i].as_dict())
+                    result.append(wanted_users[i])
                 except:
                     break
-            return jsonify(result), 200
+            print(users_schema_basic.dump(result))
+            return jsonify(users_schema_basic.dump(result)), 200
         abort(404, "No user with this login")
     else:  # restricted access to somebody else
         abort(401)
@@ -48,13 +56,13 @@ def get_user_by_login():
 def get_self():
     print(request.headers.get('Authorization', '').split())
     if current_user.is_authenticated:
-        return current_user.as_dict(), 200
+        return jsonify(user_schema_basic.dump(current_user)), 200
     else:  # restricted access to somebody else
         abort(401)
 
 
 @login_required
-@user.route('/user/', methods=['PUT'])
+@user.route('/user', methods=['PUT'])
 def update_self():
     if current_user.is_authenticated:
         data = request.get_json()
@@ -74,7 +82,7 @@ def update_self():
                                         email=data["email"],
                                         profile_photo=data["profile_photo"])
                     db.session.commit()
-                    return updated_user.as_dict(), 200
+                    return jsonify(user_schema_basic.dump(updated_user)), 200
                 abort(400, "Email taken")
             abort(400, "Login taken")
         abort(400)
@@ -104,7 +112,7 @@ def update_user(id=None):
                             email=data["email"],
                             profile_photo=data["profile_photo"])
                         db.session.commit()
-                        return updated_user.as_dict(), 200
+                        return jsonify(user_schema_basic.dump(updated_user)), 200
                     abort(400, "Email taken")
                 abort(400, "Login taken")
             except Exception as e:
@@ -121,7 +129,7 @@ def delete_self():
         this_user = current_user
         db.session.delete(this_user)
         db.session.commit()
-        return this_user.as_dict(), 200
+        return jsonify(user_schema_basic.dump(this_user)), 200
     else:  # restricted access to somebody else
         abort(401)
 
@@ -136,7 +144,7 @@ def delete_user(id):
                 this_user = user_model.User.query.get(id)
                 db.session.delete(this_user)
                 db.session.commit()
-                return this_user.as_dict(), 200
+                return jsonify(user_schema_basic.dump(this)), 200
             else:  # restricted access to somebody else
                 abort(401)
         abort(404, "No user with this id")
@@ -206,10 +214,10 @@ def get_followed_self():
         result = []
         for i in range((page_num - 1) * limit, page_num * limit):
             try:
-                result.append(current_user.followed[i].as_dict())
+                result.append(current_user.followed[i])
             except:
                 break
-        return jsonify(result), 200
+        return jsonify(users_schema_basic.dump(result)), 200
     else:  # restricted access to somebody else
         abort(401)
 
@@ -222,10 +230,10 @@ def get_followers_self():
         result = []
         for i in range((page_num - 1) * limit, page_num * limit):
             try:
-                result.append(current_user.followers[i].as_dict())
+                result.append(current_user.followers[i])
             except:
                 break
-        return jsonify(result), 200
+        return jsonify(users_schema_basic.dump(result)), 200
     else:  # restricted access to somebody else
         abort(401)
 
@@ -240,10 +248,10 @@ def get_followed(id):
             result = []
             for i in range((page_num - 1) * limit, page_num * limit):
                 try:
-                    result.append(wanted_user.followed[i].as_dict())
+                    result.append(wanted_user.followed[i])
                 except:
                     break
-            return jsonify(result), 200
+            return jsonify(users_schema_basic.dump(result)), 200
         else:
             abort(404, "No user with this id")
     else:  # restricted access to somebody else
@@ -260,10 +268,10 @@ def get_followers(id):
             result = []
             for i in range((page_num - 1) * limit, page_num * limit):
                 try:
-                    result.append(wanted_user.followers[i].as_dict())
+                    result.append(wanted_user.followers[i])
                 except:
                     break
-            return jsonify(result), 200
+            return jsonify(users_schema_basic.dump(result)), 200
         else:
             abort(404, "No user with this id")
     else:  # restricted access to somebody else

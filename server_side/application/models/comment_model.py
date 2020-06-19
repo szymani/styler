@@ -1,7 +1,5 @@
 from application import db, ma
 from datetime import datetime as dt
-from . import user_model
-from . import single_post_model
 
 
 class Comment(db.Model):

@@ -2,13 +2,13 @@ from flask import request
 from sqlalchemy import desc
 
 from application import db, ma
-from ..models import user_model, comment_model
+from ..models import Comment
 from flask_login import current_user
 from ..services import helper_func
 
 
 def add_comment(id, data):
-    new_comment = comment_model.Comment(
+    new_comment = Comment(
         author_id=current_user.id,
         post_id=id,
         description=data["description"])
@@ -18,12 +18,12 @@ def add_comment(id, data):
 
 
 def get_comment(id):
-    return comment_model.Comment.query.get(id)
+    return Comment.query.get(id)
 
 
 def get_as_list(id):
     print("adsd ")
-    return comment_model.Comment.query.filter(comment_model.Comment.id == id)
+    return Comment.query.filter(Comment.id == id)
 
 
 def check_auth(wanted_comment):
@@ -46,6 +46,6 @@ def update_comment(wanted_comment, data):
 
 
 def get_comments(id, page_num, limit):
-    return comment_model.Comment.query.filter(
-        comment_model.Comment.post_id == id).paginate(
+    return Comment.query.filter(
+        Comment.post_id == id).paginate(
         page=page_num, per_page=limit)

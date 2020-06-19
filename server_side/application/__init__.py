@@ -23,7 +23,8 @@ def create_app(testing=False):
     login_manager.init_app(app)
 
     with app.app_context():
-        from application.controllers import routes, user_controller, comment_controller, auth_controller, single_post_controller, style_controller, messages_controller
+        from . import models
+        from application.controllers import user_controller, comment_controller, auth_controller, single_post_controller, style_controller, messages_controller
         from application.errors import errors
         app.register_blueprint(auth_controller.auth)
         app.register_blueprint(user_controller.user)

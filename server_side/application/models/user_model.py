@@ -6,8 +6,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import current_app as app
 import jwt
 
-from . import single_post_model, comment_model
-
 
 FollowerRelationship = db.Table(
     'FollowerRelationship', db.Model.metadata,

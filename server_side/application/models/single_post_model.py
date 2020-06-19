@@ -1,6 +1,6 @@
 from application import db, ma
 from datetime import datetime as dt
-from ..models import user_model, comment_model
+
 
 who_liked_table = db.Table('who_liked', db.Model.metadata,
                            db.Column('post_id', db.Integer,
