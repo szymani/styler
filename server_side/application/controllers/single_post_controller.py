@@ -1,21 +1,19 @@
 from flask import request, send_file, Blueprint, jsonify, make_response, abort
-from flask import current_app as app
 from flask_login import login_required, logout_user, current_user
 from io import BytesIO
 import json
-import numpy as np
 
 from application import db, ma
 from ..models import User, SinglePost
 from ..schemas import schemas
-from ..services import helper_func, style_service
-from ..services.process_image import ProcessImage
+from ..services import helper_func, style_service, post_service
 
 
 single_post = Blueprint('single_post', __name__)
 post_schema = schemas.PostSchema()
 posts_schema = schemas.PostSchema(many=True)
-# TODO Make service for posts
+users_schema_basic = schemas.UserSchema(
+    many=True, exclude=['password', 'email', 'messages', 'chats'])
 
 
 @login_required
@@ -26,18 +24,7 @@ def add_post_prestyle():
         if current_user.is_authenticated:
             if style_service.get_style_by_id(data["style_id"]):
                 try:
-                    new_post = SinglePost(
-                        content_image=data["content_image"],
-                        author_id=current_user.id,
-                        description=data["description"],
-                        style_id=data["style_id"],
-                        isprivate=data["isprivate"])
-                    db.session.add(new_post)
-                    db.session.commit()
-                    compute_thread = ProcessImage(
-                        new_post.id, app._get_current_object())
-                    compute_thread.start()
-                    return jsonify(post_schema.dump(new_post)), 200
+                    return jsonify(post_schema.dump(post_service.add_post(data))), 200
                 except Exception as e:
                     print(str(e))
             else:
@@ -53,21 +40,9 @@ def add_post_custom():
     data = request.get_json()
     if data is not None:
         if current_user.is_authenticated:
-            # TODO Create new style
             new_style = style_service.add_style(data)
             try:
-                new_post = SinglePost(
-                    content_image=data["content_image"],
-                    author_id=current_user.id,
-                    description=data["description"],
-                    style_id=new_style.id,
-                    isprivate=data["isprivate"])
-                db.session.add(new_post)
-                db.session.commit()
-                compute_thread = ProcessImage(
-                    new_post.id, app._get_current_object())
-                compute_thread.start()
-                return jsonify(post_schema.dump(new_post)), 200
+                return jsonify(post_schema.dump(post_service.add_post(data, new_style))), 200
             except Exception as e:
                 print(str(e))
         else:
@@ -80,16 +55,11 @@ def add_post_custom():
 def update_post(id):
     data = request.get_json()
     if data is not None:
-        wanted_post = SinglePost.query.filter(SinglePost.id == id)
+        wanted_post = post_service.get_post_as_list(id)
         if wanted_post.first():
-            if current_user.is_authenticated and wanted_post.first().author_id == current_user.id:
+            if post_service.check_auth(wanted_post):
                 try:
-                    wanted_post.update({
-                        "description": data["description"],
-                        "content_image": data["content_image"]
-                    })
-                    db.session.commit()
-                    return jsonify(post_schema.dump(wanted_post.first())), 200
+                    return jsonify(post_schema.dump(post_service.update_post(data, wanted_post))), 200
                 except Exception as e:
                     abort(400)
             else:
@@ -100,7 +70,7 @@ def update_post(id):
 @ login_required
 @ single_post.route('/post/<int:id>', methods=['GET'])
 def get_post(id):
-    wanted_post = SinglePost.query.get(id)
+    wanted_post = post_service.get_post(id)
     if wanted_post is None:
         abort(404, "No post with this id")
     else:
@@ -114,11 +84,7 @@ def get_posts(id):
     if current_user.is_authenticated:
         if id is not None:
             try:
-                wanted_post = (SinglePost.query.filter(
-                    SinglePost.author_id == id).paginate(
-                        page=page_num, per_page=limit).items)
-                print(wanted_post)
-                return jsonify(posts_schema.dump(wanted_post)), 200
+                return jsonify(posts_schema.dump(post_service.get_posts(id, page_num, limit))), 200
             except:
                 abort(400)
     abort(400)
@@ -129,11 +95,7 @@ def get_posts(id):
 def get_followed_posts():
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        followed_users = current_user.followed
-        result = []
-        for followed_user in followed_users:
-            result.append(followed_user.posts)
-        return jsonify(posts_schema.dump(np.asarray(result).flatten())), 200
+        return jsonify(posts_schema.dump(post_service.get_followed_posts())), 200
     abort(400)
 
 
@@ -141,14 +103,10 @@ def get_followed_posts():
 @ single_post.route('/post/<int:id>', methods=['DELETE'])
 def delete_post(id):
     if id is not None:
-        wanted_post = SinglePost.query.get(id)
+        wanted_post = post_service.get_post(id)
         if wanted_post:
-            if current_user.is_authenticated and (
-                    current_user.id == wanted_post.author_id
-                    or current_user.user_type == 1):
-                db.session.delete(SinglePost.query.get(id))
-                db.session.commit()
-                return jsonify(post_schema.dump(wanted_post)), 200
+            if post_service.check_auth(wanted_post):
+                return jsonify(post_schema.dump(post_service.delete_post(wanted_post))), 200
             else:  # restricted access to somebody else
                 abort(401)
         abort(404, "No post with this id")
@@ -158,13 +116,10 @@ def delete_post(id):
 @ login_required
 @ single_post.route('/post/<int:id>/like', methods=['PUT'])
 def like_post(id):
-    wanted_post = SinglePost.query.get(id)
+    wanted_post = post_service.get_post(id)
     if wanted_post is not None:
-        if wanted_post.who_liked.filter(User.id == current_user.id).first() is None:
-            wanted_post.who_liked.append(current_user)
-            wanted_post.upvotes = wanted_post.upvotes + 1
-            db.session.commit()
-            return jsonify(post_schema.dump(wanted_post)), 200
+        if not post_service.is_liked(wanted_post):
+            return jsonify(post_schema.dump(post_service.like_post(wanted_post))), 200
         else:
             abort(400, "Already liked")
     else:
@@ -174,13 +129,10 @@ def like_post(id):
 @ login_required
 @ single_post.route('/post/<int:id>/unlike', methods=['PUT'])
 def unlike_post(id):
-    wanted_post = SinglePost.query.get(id)
+    wanted_post = post_service.get_post(id)
     if wanted_post is not None:
-        if wanted_post.who_liked.filter(User.id == current_user.id).first() is not None:
-            wanted_post.who_liked.remove(current_user)
-            wanted_post.upvotes = wanted_post.upvotes - 1
-            db.session.commit()
-            return jsonify(post_schema.dump(wanted_post)), 200
+        if post_service.is_liked(wanted_post):
+            return jsonify(post_schema.dump(post_service.unlike_post(wanted_post))), 200
         else:
             abort(400, "Not liked yet")
     else:
@@ -192,13 +144,9 @@ def unlike_post(id):
 def get_who_liked(id):
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        wanted_post = SinglePost.query.get(id)
+        wanted_post = post_service.get_post(id)
         if wanted_post is not None:
-            result = []
-            if len(wanted_post.who_liked.all()) is not 0:
-                for single_user in wanted_post.who_liked:
-                    result.append(single_user.as_dict())
-            return jsonify(result), 200
+            return jsonify(users_schema_basic.dump(post_service.get_who_liked(wanted_post))), 200
         else:
             abort(404, "Wrong post id")
     abort(400)
