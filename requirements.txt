@@ -1,5 +1,4 @@
 scikit-umfpack
-cupy-cuda102
 attrs==19.3.0
 cffi==1.14.0
 click==7.1.2
