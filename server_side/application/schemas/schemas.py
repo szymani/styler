@@ -10,6 +10,7 @@ class PostSchema(SQLAlchemyAutoSchema):
         include_relationships = True
         load_instance = True
     comments = ma.Nested("CommentSchema", many=True)
+    author = ma.Nested("UserSchema", only=["login","profile_photo","id"], many=False)
 
 class StyleSchema(SQLAlchemyAutoSchema):
     class Meta:
