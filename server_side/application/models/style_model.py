@@ -16,7 +16,7 @@ class Style(db.Model):
     def __init__(self, author_id, style_image, description='Default description', localization="", isprivate=True):
         self.style_author_id = author_id
         self.description = description
-        if (content_image is not None):
+        if (style_image is not None):
             self.style_image = style_image.encode('ascii')
         else:
             self.style_image = style_image
