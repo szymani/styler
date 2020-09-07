@@ -11,6 +11,7 @@ class PostSchema(SQLAlchemyAutoSchema):
         load_instance = True
     comments = ma.Nested("CommentSchema", many=True)
     author = ma.Nested("UserSchema", only=["login","profile_photo","id"], many=False)
+    who_liked = ma.Nested("UserSchema", only=["login","profile_photo","id"], many=True)
 
 class StyleSchema(SQLAlchemyAutoSchema):
     class Meta:
