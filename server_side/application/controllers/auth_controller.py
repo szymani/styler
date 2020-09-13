@@ -3,11 +3,13 @@ from flask_login import current_user, login_user, login_required, logout_user
 from flask import current_app as app
 from .. import login_manager, db
 from ..models import user_model
+from ..schemas import schemas
 import jwt
 
 auth = Blueprint('auth', __name__)
 users_schema_basic = schemas.UserSchema(
     many=True, exclude=['password', 'email', 'messages', 'chats'])
+
 
 @auth.route('/signup', methods=['POST'])
 def signup():
