@@ -6,7 +6,8 @@ from ..models import user_model
 import jwt
 
 auth = Blueprint('auth', __name__)
-
+users_schema_basic = schemas.UserSchema(
+    many=True, exclude=['password', 'email', 'messages', 'chats'])
 
 @auth.route('/signup', methods=['POST'])
 def signup():
