@@ -7,6 +7,8 @@ from ..schemas import schemas
 import jwt
 
 auth = Blueprint('auth', __name__)
+user_schema_basic = schemas.UserSchema(
+    exclude=['password', 'email', 'messages', 'chats'])
 users_schema_basic = schemas.UserSchema(
     many=True, exclude=['password', 'email', 'messages', 'chats'])
 
