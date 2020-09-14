@@ -27,7 +27,10 @@ def signup():
                                            profile_photo=data["profile_photo"])
                 db.session.add(new_user)
                 db.session.commit()
-                return jsonify(user_schema_basic.dump(new_user)), 200
+                responseObject = {
+                    'token': str(new_user.encode_token())
+                }
+                return make_response(jsonify(responseObject)), 200
             abort(400, "Email taken")
         abort(400, "Login taken")
     abort(400)
@@ -40,7 +43,10 @@ def login():
         login=data["login"]).first()  # Validate Login Attempt
     if data and this_user and this_user.check_password(
             password=data["password"]):
-        return jsonify(user_schema_basic.dump(this_user)), 200
+        responseObject = {
+            'token': this_user.encode_token()
+        }
+        return make_response(jsonify(responseObject)), 200
     abort(400, 'Invalid username/password combination')
 
 
