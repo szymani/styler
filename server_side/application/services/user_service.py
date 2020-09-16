@@ -40,11 +40,11 @@ def if_email_free(email):
 def update_user(id, data):
     updated_user = get_user(id)
     updated_user.update(
-        login=data["login"],
-        password=data["password"],
-        email=data["email"],
-        profile_photo=data["profile_photo"],
-        description=data["description"])
+        login=data["login"] or updated_user.login,
+        password=data["password"] or updated_user.password,
+        email=data["email"] or updated_user.email,
+        profile_photo=data["profile_photo"] or updated_user.profile_photo,
+        description=data["description"] or updated_user.description)
     db.session.commit()
     return updated_user
 
