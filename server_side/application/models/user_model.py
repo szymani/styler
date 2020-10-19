@@ -84,7 +84,10 @@ class User(UserMixin, db.Model):
         self.description = description
         self.profile_photo = profile_photo
         self.user_type = user_type
-        self.password = generate_password_hash(password, method='sha256')
+        if password[0:7] != "sha256$":
+            self.password = generate_password_hash(password, method='sha256')
+        else:
+            self.password = password
 
     def set_password(self, password):
         self.password = generate_password_hash(password, method='sha256')

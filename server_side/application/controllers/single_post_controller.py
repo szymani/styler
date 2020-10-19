@@ -1,10 +1,6 @@
-from flask import request, send_file, Blueprint, jsonify, make_response, abort
-from flask_login import login_required, logout_user, current_user
-from io import BytesIO
-import json
+from flask import request, Blueprint, jsonify, abort
+from flask_login import login_required, current_user
 
-from application import db, ma
-from ..models import User, SinglePost
 from ..schemas import schemas
 from ..services import helper_func, style_service, post_service
 
@@ -55,11 +51,11 @@ def add_post_custom():
 def update_post(id):
     data = request.get_json()
     if data is not None:
-        wanted_post = post_service.get_post_as_list(id)
-        if wanted_post.first():
+        wanted_post = post_service.get_post(id)
+        if wanted_post is not None:
             if post_service.check_auth(wanted_post):
                 try:
-                    return jsonify(post_schema.dump(post_service.update_post(data, wanted_post))), 200
+                    return jsonify(post_schema.dump(post_service.update_post(wanted_post, data))), 200
                 except Exception as e:
                     abort(400)
             else:
@@ -95,7 +91,7 @@ def get_posts(id):
 def get_followed_posts():
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        return jsonify(posts_schema.dump(post_service.get_followed_posts())), 200
+        return jsonify(posts_schema.dump(post_service.get_followed_posts(page_num, limit))), 200
     abort(400)
 
 
@@ -106,7 +102,9 @@ def delete_post(id):
         wanted_post = post_service.get_post(id)
         if wanted_post:
             if post_service.check_auth(wanted_post):
-                return jsonify(post_schema.dump(post_service.delete_post(wanted_post))), 200
+                result = jsonify(post_schema.dump(wanted_post))
+                post_service.delete_post(wanted_post)
+                return result, 200
             else:  # restricted access to somebody else
                 abort(401)
         abort(404, "No post with this id")

@@ -14,9 +14,9 @@ from Fast_lite.process_stylization_lite import stylization
 def change_style(content_image, style_image):
     # Load model
     p_wct = PhotoWCT()
-    p_wct.load_state_dict(torch.load(os.path.abspath(os.path.dirname(__file__)) + '/PhotoWCTModels/photo_wct.pth'))
+    p_wct.load_state_dict(torch.load(os.path.abspath(
+        os.path.dirname(__file__)) + '/PhotoWCTModels/photo_wct.pth'))
 
-    #TODO make test with different parameters ? (For thesis)
     p_pro = GIFSmoothing(r=35, eps=0.001)
     p_wct.cuda(0)
 

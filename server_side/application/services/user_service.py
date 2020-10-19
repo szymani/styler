@@ -43,7 +43,8 @@ def update_user(id, data):
         login=data["login"] or updated_user.login,
         password=data["password"] or updated_user.password,
         email=data["email"] or updated_user.email,
-        profile_photo=data["profile_photo"] or updated_user.profile_photo,
+        profile_photo=data["profile_photo"].encode(
+            'ascii') or updated_user.profile_photo,
         description=data["description"] or updated_user.description)
     db.session.commit()
     return updated_user
@@ -87,3 +88,11 @@ def unfollow(id):
 
 def isFollowed(id):
     return (len(current_user.followed.filter(User.id == id).all())) is not 0
+
+
+def get_followers(id):
+    return User.query.filter_by(id=id).first().followers
+
+
+def get_followed(id):
+    return User.query.filter_by(id=id).first().followed

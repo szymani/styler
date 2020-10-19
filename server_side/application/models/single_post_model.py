@@ -1,4 +1,4 @@
-from application import db, ma
+from application import db
 from datetime import datetime as dt
 
 
@@ -14,6 +14,7 @@ class SinglePost(db.Model):
     __tablename__ = 'post'
     id = db.Column(db.Integer, primary_key=True)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    style_id = db.Column(db.Integer, db.ForeignKey('style.id'))
     description = db.Column(db.String(250), nullable=True)
     content_image = db.Column(db.LargeBinary)
     upvotes = db.Column(db.Integer, nullable=True)
@@ -27,7 +28,6 @@ class SinglePost(db.Model):
     creation_date = db.Column(db.DateTime)
     localization = db.Column(db.String(100), nullable=True)
     isprivate = db.Column(db.Boolean)
-    style_id = db.Column(db.Integer, db.ForeignKey('style.id'))
     status = db.Column(db.Integer)
 
     def __init__(self,
@@ -53,6 +53,11 @@ class SinglePost(db.Model):
         self.localization = localization
         self.isprivate = isprivate
         self.status = 0
+
+    def update(self, description, content_image, isprivate):
+        self.description = description
+        self.content_image = content_image
+        self.isprivate = isprivate
 
     def as_dict(self):
         return {

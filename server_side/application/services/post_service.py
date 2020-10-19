@@ -44,18 +44,23 @@ def get_posts(id, page_num, limit):
     return (SinglePost.query.filter(SinglePost.author_id == id).paginate(page=page_num, per_page=limit).items)
 
 
-def get_followed_posts():
-    followed_users = current_user.followed
-    result = []
-    for followed_user in followed_users.all():
-        result.extend(followed_user.posts)
-    return np.asarray(result)
+def get_followed_posts(page_num, limit):
+    return (SinglePost.query
+            .filter(SinglePost.author_id.in_(
+                [followed_user.id for followed_user in current_user.followed.all()]))
+            .order_by(SinglePost.creation_date.desc())
+            .paginate(page=page_num, per_page=limit).items)
 
 
-def update_post(data, post):
-    post.update(data)
+def update_post(wanted_post, data):
+    wanted_post.update(
+        description=data["description"] or wanted_post.description,
+        content_image=data["content_image"].encode(
+            'ascii') or wanted_post.content_image,
+        isprivate=data["isprivate"]
+    )
     db.session.commit()
-    return post.first()
+    return wanted_post
 
 
 def delete_post(wanted_post):

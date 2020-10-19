@@ -1,4 +1,4 @@
-from application import db, ma
+from application import db
 from datetime import datetime as dt
 from . import user_model
 

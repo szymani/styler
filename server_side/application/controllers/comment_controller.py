@@ -62,8 +62,8 @@ def update_comment(id):
                 if comment_service.check_auth(wanted_comment):
                     comment_service.update_comment(wanted_comment, data)
                     return jsonify(comment_schema.dump(comment_service.update_comment(wanted_comment, data).first())), 200
-            except:
-                abort(400, "Exception")
+            except Exception as e:
+                abort(400, f'Exception {e}')
             abort(401)
         abort(404, "No comment with this id")
     abort(400)
