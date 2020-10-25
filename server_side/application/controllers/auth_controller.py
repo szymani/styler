@@ -3,9 +3,14 @@ from flask_login import current_user, login_user, login_required, logout_user
 from flask import current_app as app
 from .. import login_manager, db
 from ..models import user_model
+from ..schemas import schemas
 import jwt
 
 auth = Blueprint('auth', __name__)
+user_schema_basic = schemas.UserSchema(
+    exclude=['password', 'email', 'messages', 'chats'])
+users_schema_basic = schemas.UserSchema(
+    many=True, exclude=['password', 'email', 'messages', 'chats'])
 
 
 @auth.route('/signup', methods=['POST'])
@@ -23,7 +28,6 @@ def signup():
                 db.session.add(new_user)
                 db.session.commit()
                 responseObject = {
-                    'status': 'Success',
                     'token': str(new_user.encode_token())
                 }
                 return make_response(jsonify(responseObject)), 200
@@ -40,10 +44,6 @@ def login():
     if data and this_user and this_user.check_password(
             password=data["password"]):
         responseObject = {
-            'status': 'Success',
-            'login':
-            this_user.login,
-            'id': this_user.id,
             'token': this_user.encode_token()
         }
         return make_response(jsonify(responseObject)), 200

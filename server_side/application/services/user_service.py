@@ -1,9 +1,6 @@
-from flask import request
-
 from application import db
 from ..models import User
 from flask_login import current_user
-from ..services import helper_func
 
 
 def get_user(id):
@@ -40,11 +37,12 @@ def if_email_free(email):
 def update_user(id, data):
     updated_user = get_user(id)
     updated_user.update(
-        login=data["login"],
-        password=data["password"],
-        email=data["email"],
-        profile_photo=data["profile_photo"],
-        description=data["description"])
+        login=data["login"] or updated_user.login,
+        password=data["password"] or updated_user.password,
+        email=data["email"] or updated_user.email,
+        profile_photo=data["profile_photo"].encode(
+            'ascii') or updated_user.profile_photo,
+        description=data["description"] or updated_user.description)
     db.session.commit()
     return updated_user
 
@@ -86,4 +84,12 @@ def unfollow(id):
 
 
 def isFollowed(id):
-    return (len(current_user.followed.filter(User.id == id).all())) is not 0
+    return (len(current_user.followed.filter(User.id == id).all())) != 0
+
+
+def get_followers(id):
+    return User.query.filter_by(id=id).first().followers
+
+
+def get_followed(id):
+    return User.query.filter_by(id=id).first().followed

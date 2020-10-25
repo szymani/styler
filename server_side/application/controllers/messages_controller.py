@@ -66,3 +66,14 @@ def new_chat():
             return jsonify(chat_schema.dump(message_service.create_chat(data))), 200
         abort(400)
     abort(401)
+
+
+@login_required
+@message.route('/chats/<int:id>', methods=['PUT'])
+def update_chat(id):
+    if current_user.is_authenticated:
+        data = request.get_json()
+        if data is not None:
+            return jsonify(chat_schema.dump(message_service.update_chat(id, data))), 200
+        abort(400)
+    abort(401)

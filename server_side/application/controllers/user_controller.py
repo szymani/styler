@@ -62,8 +62,11 @@ def update_self():
             try:
                 if user_service.if_login_free(data["login"]):
                     if user_service.if_email_free(data["email"]):
-                        return jsonify(user_schema_basic.dump(user_service.update_user(
-                            current_user.id, data))), 200
+                        responseObject = {
+                            'token': user_service.update_user(
+                                current_user.id, data).encode_token()
+                        }
+                        return make_response(jsonify(responseObject)), 200
                     abort(400, "Email taken")
                 abort(400, "Login taken")
             except Exception as e:
@@ -82,12 +85,15 @@ def update_user(id=None):
             try:
                 if user_service.if_login_free(data["login"]):
                     if user_service.if_email_free(data["email"]):
-                        return jsonify(user_schema_basic.dump(user_service.update_user(
-                            current_user.id, data))), 200
+                        responseObject = {
+                            'token': user_service.update_user(
+                                current_user.id, data).encode_token()
+                        }
+                        return make_response(jsonify(responseObject)), 200
                     abort(400, "Email taken")
                 abort(400, "Login taken")
             except Exception as e:
-                print(str(e) + "sdasd")
+                print(str(e))
         abort(400)
     else:
         abort(401)
@@ -153,7 +159,6 @@ def unfollow_user(id):
 @ user.route('/user/followed/', methods=['GET'])
 def get_followed_self():
     limit, page_num = helper_func.set_limit_and_page(request)
-
     if current_user.is_authenticated:
         wanted_users = helper_func.paginate_list(
             current_user.followed, page_num, limit)
@@ -179,11 +184,8 @@ def get_followers_self():
 def get_followed(id):
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        wanted_user = user_service.get_user(id)
-        if wanted_user is not None:
-            wanted_users = helper_func.paginate_list(
-                current_user.followed, page_num, limit)
-            return jsonify(users_schema_basic.dump(wanted_users)), 200
+        if id is not None:
+            return jsonify(users_schema_basic.dump(user_service.get_followed(id))), 200
         else:
             abort(404, "No user with this id")
     else:  # restricted access to somebody else
@@ -195,11 +197,8 @@ def get_followed(id):
 def get_followers(id):
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        wanted_user = user_service.get_user(id)
-        if wanted_user is not None:
-            wanted_users = helper_func.paginate_list(
-                current_user.followers, page_num, limit)
-            return jsonify(users_schema_basic.dump(wanted_users)), 200
+        if id is not None:
+            return jsonify(users_schema_basic.dump(user_service.get_followers(id))), 200
         else:
             abort(404, "No user with this id")
     else:  # restricted access to somebody else

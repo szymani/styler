@@ -1,3 +1,4 @@
+from os import name
 from flask import request
 
 from application import db
@@ -27,5 +28,13 @@ def send_pm(chat, data):
 
 def create_chat(data):
     chat = Chat(name=data["chat_name"], participants=data["participants"])
+    db.session.commit()
+    return chat
+
+
+def update_chat(id, data):
+    chat = get_chat(id)
+    Chat.query.filter(Chat.id == id).update(
+        {'name': data["name"] or chat.name})
     db.session.commit()
     return chat
