@@ -2,12 +2,15 @@ from application import db
 from datetime import datetime as dt
 
 
-who_liked_table = db.Table('who_liked', db.Model.metadata,
-                           db.Column('post_id', db.Integer,
-                                     db.ForeignKey('post.id')),
-                           db.Column('user_id', db.Integer,
-                                     db.ForeignKey('user.id'))
-                           )
+who_liked_table = db.Table(
+    'who_liked', db.Model.metadata,
+    db.Column('post_id', db.Integer, db.ForeignKey('post.id')),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')))
+
+post_tag_table = db.Table(
+    'post_tag', db.Model.metadata,
+    db.Column('post_id', db.Integer, db.ForeignKey('post.id')),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id')))
 
 
 class SinglePost(db.Model):
@@ -29,6 +32,12 @@ class SinglePost(db.Model):
     localization = db.Column(db.String(100), nullable=True)
     isprivate = db.Column(db.Boolean)
     status = db.Column(db.Integer)
+
+    tags = db.relation(
+        'Tag',
+        secondary=post_tag_table,
+        lazy='dynamic',
+        backref=db.backref('posts', lazy='dynamic'))
 
     def __init__(self,
                  content_image,

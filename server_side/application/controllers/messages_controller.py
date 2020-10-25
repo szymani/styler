@@ -71,7 +71,6 @@ def new_chat():
 @login_required
 @message.route('/chats/<int:id>', methods=['PUT'])
 def update_chat(id):
-    breakpoint()
     if current_user.is_authenticated:
         data = request.get_json()
         if data is not None:

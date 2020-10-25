@@ -1,9 +1,6 @@
-from flask import request
-
 from application import db
 from ..models import User
 from flask_login import current_user
-from ..services import helper_func
 
 
 def get_user(id):
@@ -87,7 +84,7 @@ def unfollow(id):
 
 
 def isFollowed(id):
-    return (len(current_user.followed.filter(User.id == id).all())) is not 0
+    return (len(current_user.followed.filter(User.id == id).all())) != 0
 
 
 def get_followers(id):

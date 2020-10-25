@@ -1,3 +1,4 @@
+from application.services.helper_func import paginate_list
 from flask import request, Blueprint, jsonify, abort
 from flask_login import login_required, current_user
 
@@ -20,7 +21,8 @@ def add_post_prestyle():
         if current_user.is_authenticated:
             if style_service.get_style_by_id(data["style_id"]):
                 try:
-                    return jsonify(post_schema.dump(post_service.add_post(data))), 200
+                    return jsonify(post_schema.dump(
+                        post_service.add_post(data))), 200
                 except Exception as e:
                     print(str(e))
             else:
@@ -38,7 +40,8 @@ def add_post_custom():
         if current_user.is_authenticated:
             new_style = style_service.add_style(data)
             try:
-                return jsonify(post_schema.dump(post_service.add_post(data, new_style))), 200
+                return jsonify(post_schema.dump(
+                    post_service.add_post(data, new_style))), 200
             except Exception as e:
                 print(str(e))
         else:
@@ -55,7 +58,8 @@ def update_post(id):
         if wanted_post is not None:
             if post_service.check_auth(wanted_post):
                 try:
-                    return jsonify(post_schema.dump(post_service.update_post(wanted_post, data))), 200
+                    return jsonify(post_schema.dump(
+                        post_service.update_post(wanted_post, data))), 200
                 except Exception as e:
                     abort(400)
             else:
@@ -80,7 +84,8 @@ def get_posts(id):
     if current_user.is_authenticated:
         if id is not None:
             try:
-                return jsonify(posts_schema.dump(post_service.get_posts(id, page_num, limit))), 200
+                return jsonify(posts_schema.dump(
+                    post_service.get_posts(id, page_num, limit))), 200
             except:
                 abort(400)
     abort(400)
@@ -91,7 +96,20 @@ def get_posts(id):
 def get_followed_posts():
     limit, page_num = helper_func.set_limit_and_page(request)
     if current_user.is_authenticated:
-        return jsonify(posts_schema.dump(post_service.get_followed_posts(page_num, limit))), 200
+        return jsonify(posts_schema.dump(
+            post_service.get_followed_posts(page_num, limit))), 200
+    abort(400)
+
+
+@ login_required
+@ single_post.route('/posts/tag', methods=['GET'])
+def get_posts_by_tag():
+    limit, page_num = helper_func.set_limit_and_page(request)
+    if current_user.is_authenticated:
+        if request.args.get('tag') is not None:
+            tag = str(request.args.get('tag'))
+            return jsonify(posts_schema.dump(
+                post_service.get_posts_by_tag(tag, limit=limit, page=page_num))), 200
     abort(400)
 
 

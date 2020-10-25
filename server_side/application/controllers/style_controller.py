@@ -126,6 +126,12 @@ def get_style(id):
 
 
 @ login_required
+@ style.route('/styles/tag', methods=['GET'])
+def get_styles_by_tag():
+    return get_styles_generic(request, "tag")
+
+
+@ login_required
 @ style.route('/styles/all/<int:id>', methods=['GET'])
 def get_all_styles(id):
     if id is not None:
@@ -161,7 +167,7 @@ def get_followed_styles(id):
         return get_styles_generic(request, "followed")
 
 
-def get_styles_generic(request, request_type, id):
+def get_styles_generic(request, request_type, id=None):
     limit, page_num = helper_func.set_limit_and_page(request)
     if limit and current_user.is_authenticated:
         wanted_styles = None
@@ -175,6 +181,11 @@ def get_styles_generic(request, request_type, id):
                 wanted_styles = style_service.get_fav_styles(limit, page_num)
             elif request_type == "your":
                 wanted_styles = style_service.get_your_styles(limit, page_num)
+            elif request_type == "tag":
+                if request.args.get('tag') is not None:
+                    tag = str(request.args.get('tag'))
+                    wanted_styles = style_service.get_styles_by_tag(
+                        tag, limit=limit, page=page_num)
         else:
             if request_type == "followed":
                 wanted_styles = style_service.get_followed_styles(

@@ -5,11 +5,12 @@ import numpy as np
 from application import db
 from ..models import SinglePost, User
 from flask_login import current_user
-from ..services import helper_func
+from ..services import tag_service
 from .process_image import ProcessImage
 
 
 def add_post(data, new_style=None):
+    tags = tag_service.getTagsFromString(str(data["tags"]))
     if new_style is None:
         new_post = SinglePost(
             content_image=data["content_image"],
@@ -24,6 +25,7 @@ def add_post(data, new_style=None):
             description=data["description"],
             style_id=new_style.id,
             isprivate=data["isprivate"])
+    [new_post.tags.append(tag) for tag in tags]
     db.session.add(new_post)
     db.session.commit()
     compute_thread = ProcessImage(
@@ -44,6 +46,15 @@ def get_posts(id, page_num, limit):
     return (SinglePost.query.filter(SinglePost.author_id == id).paginate(page=page_num, per_page=limit).items)
 
 
+def get_posts_by_tag(tag, page, limit):
+    posts = tag_service.getPostsWithTag(tag)
+    if posts != []:
+        return posts.order_by(
+            SinglePost.upvotes.desc()).paginate(page=page, per_page=limit).items
+    else:
+        return posts
+
+
 def get_followed_posts(page_num, limit):
     return (SinglePost.query
             .filter(SinglePost.author_id.in_(
@@ -53,12 +64,14 @@ def get_followed_posts(page_num, limit):
 
 
 def update_post(wanted_post, data):
+    tags = tag_service.getTagsFromString(str(data["tags"]))
     wanted_post.update(
         description=data["description"] or wanted_post.description,
         content_image=data["content_image"].encode(
             'ascii') or wanted_post.content_image,
         isprivate=data["isprivate"]
     )
+    [wanted_post.tags.append(tag) for tag in tags]
     db.session.commit()
     return wanted_post
 

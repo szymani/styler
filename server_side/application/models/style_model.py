@@ -8,6 +8,11 @@ who_liked_style = db.Table('who_liked_style', db.Model.metadata,
                                      db.ForeignKey('user.id'))
                            )
 
+style_tag_table = db.Table(
+    'style_tag', db.Model.metadata,
+    db.Column('style_id', db.Integer, db.ForeignKey('style.id')),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id')))
+
 
 class Style(db.Model):
     __tablename__ = 'style'
@@ -24,6 +29,11 @@ class Style(db.Model):
                                 secondary=who_liked_style,
                                 lazy='dynamic',
                                 backref=db.backref('liked_styles', lazy='dynamic'))
+    tags = db.relation(
+        'Tag',
+        secondary=style_tag_table,
+        lazy='dynamic',
+        backref=db.backref('styles', lazy='dynamic'))
 
     def __init__(self, author_id, style_image, description='Default description', localization="", isprivate=True):
         self.style_author_id = author_id

@@ -5,8 +5,6 @@ from ..models import User, SinglePost, Comment, Message, Chat, Style
 
 
 class PostSchema(SQLAlchemyAutoSchema):
-    # style_id = field.Integer(attribute="style_id")
-
     class Meta:
         model = SinglePost
         include_relationships = True
@@ -17,6 +15,7 @@ class PostSchema(SQLAlchemyAutoSchema):
                        "login", "profile_photo", "id"], many=False)
     who_liked = ma.Nested("UserSchema", only=[
                           "login", "profile_photo", "id"], many=True)
+    tags = ma.Nested("TagSchema", only=["id", "name"], many=True)
 
 
 class StyleSchema(SQLAlchemyAutoSchema):
@@ -30,6 +29,7 @@ class StyleSchema(SQLAlchemyAutoSchema):
                         "login", "profile_photo", "id"], many=True)
     who_liked = ma.Nested("UserSchema", only=[
                           "login", "profile_photo", "id"], many=True)
+    tags = ma.Nested("TagSchema", only=["id", "name"], many=True)
 
 
 class CommentSchema(SQLAlchemyAutoSchema):
@@ -65,3 +65,10 @@ class ChatSchema(ma.SQLAlchemyAutoSchema):
     messages = ma.Nested("MessageSchema", many=True)
     participants = ma.Nested(
         UserSchema, only=["login", "profile_photo", "id"], many=True)
+
+
+class TagSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Chat
+        include_relationships = True
+        load_instance = True

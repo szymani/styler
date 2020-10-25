@@ -1,3 +1,4 @@
+from application.schemas.schemas import TagSchema
 from application.services.user_service import follow
 from application.services import user_service
 from flask import request
@@ -6,12 +7,15 @@ from sqlalchemy import desc
 from application import db, ma
 from ..models import Style, User
 from flask_login import current_user
-from ..services import helper_func
+from ..services import helper_func, tag_service
 
 
 def add_style(data):
+    tags = tag_service.getTagsFromString(str(data["tags"]))
     new_style = Style(
-        author_id=current_user.id, isprivate=data["isprivate"], style_image=data["style_image"], description=data["description"])
+        author_id=current_user.id, isprivate=data["isprivate"],
+        style_image=data["style_image"], description=data["description"])
+    [new_style.tags.append(tag) for tag in tags]
     db.session.add(new_style)
     db.session.commit()
     return new_style
@@ -83,6 +87,15 @@ def get_your_styles(limit, page, id):
         return wanted_user.author_of_styles.order_by(Style.creation_date.desc()).paginate(page=page, per_page=limit).items
 
 
+def get_styles_by_tag(tag, limit, page):
+    styles = tag_service.getStylesWithTag(tag)
+    if styles != []:
+        return styles.order_by(
+            Style.upvotes.desc()).paginate(page=page, per_page=limit).items
+    else:
+        return styles
+
+
 def get_fav_styles(limit, page, id):
     if id is None:
         return current_user.fav_styles.order_by(Style.creation_date.desc()).paginate(page=page, per_page=limit).items
@@ -114,12 +127,15 @@ def delete_style(wanted_style):
 
 
 def update_style(wanted_style, data):
+    tags = tag_service.getTagsFromString(str(data["tags"]))
     wanted_style.update(
         description=data["description"] or wanted_style.description,
         style_image=data["style_image"].encode(
             'ascii') or wanted_style.style_image,
         isprivate=data["isprivate"]
     )
+    wanted_style.tags = []
+    [wanted_style.tags.append(tag) for tag in tags]
     db.session.commit()
     return wanted_style
 
