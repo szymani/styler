@@ -1,2 +1,10 @@
-Algorithms/NST_Colab/Images/node_modules/vue/src/compiler/.DS_Store
-Algorithms/.DS_Store
+/FastPhotoStyle-master/
+/server_side_copy/
+/Fast/
+/env/
+*.pyc
+.DS_Store
+.env
+/vimos_front/
+.idea/
+.vscode/
