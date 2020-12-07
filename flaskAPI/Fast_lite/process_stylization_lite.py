@@ -64,8 +64,6 @@ def stylization(stylization_module, smoothing_module, content_image, style_image
     with torch.no_grad():
         cont_img = Image.open(BytesIO(content_image)).convert('RGB')
         styl_img = Image.open(BytesIO(style_image)).convert('RGB')
-        # cont_img = content_image.convert('RGB')
-        # styl_img = style_image.convert('RGB')
 
         new_cw, new_ch = memory_limit_image_resize(cont_img)
         new_sw, new_sh = memory_limit_image_resize(styl_img)
@@ -100,7 +98,7 @@ def stylization(stylization_module, smoothing_module, content_image, style_image
         with Timer("Elapsed time in propagation: %f"):
             out_img = smoothing_module.process(out_img, cont_pilimg)
 
-        if no_post is False:
+        if no_post is False and cuda:
             with Timer("Elapsed time in post processing: %f"):
                 out_img = smooth_filter(out_img, cont_pilimg, f_radius=15, f_edge=1e-1)
         out_byte = BytesIO()

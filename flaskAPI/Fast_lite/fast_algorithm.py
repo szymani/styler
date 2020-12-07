@@ -25,6 +25,6 @@ def change_style(content_image, style_image):
         smoothing_module=p_pro,
         content_image=content_image,
         style_image=style_image,
-        cuda=1,
+        cuda=0,
         no_post=False
     )
