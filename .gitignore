@@ -1,10 +1,6 @@
-/FastPhotoStyle-master/
-/server_side_copy/
-/Fast/
 /env/
 *.pyc
 .DS_Store
 .env
-/vimos_front/
 .idea/
 .vscode/
