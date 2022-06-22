@@ -1,7 +1,7 @@
 
 scikit-umfpack
 wheel
-numpy==1.19.0
+numpy==1.22.0
 attrs==19.3.0
 cffi==1.14.0
 click==7.1.2
